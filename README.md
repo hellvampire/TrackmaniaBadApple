@@ -1,7 +1,7 @@
 # Bad apple animation Trackmania2020
 
 ### Shoutouts
-* Leans heavily on the work of [gbx-py](https://github.com/schadocalex/gbx-py) partly included in this repo
+* Leans heavily on the work of [gbx.net](https://github.com/BigBang1112/gbx-net)
 
 
 ### Resource generation
