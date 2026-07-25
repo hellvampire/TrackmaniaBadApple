@@ -2,18 +2,125 @@
 using GBX.NET;
 using GBX.NET.Engines.Game;
 using GBX.NET.Engines.GameData;
+using GBX.NET.Engines.Meta;
 using GBX.NET.Engines.Plug;
 using GBX.NET.LZO;
+using TmEssentials;
 
 Gbx.LZO = new Lzo();
 
-const string itemIdToUse = "snow_1x1_static";
+const string itemIdToUse = "snow_1x1_1f";
 const string resources = "../../../../resources";
 const string inputMap = $"{resources}/Bad Apple - template.Map.Gbx";
+const string inputPlacement = $"{resources}/bad_apple_greedy_placement.txt";
 const string itemsLocation = $"{resources}/items";
 const string originalLocation = $"{itemsLocation}/{itemIdToUse}.Item.Gbx";
+const int translationMax = 10_000;
+const int frameMs = 1_000;
+const int initialBlockWaitMs = 200_000;
+const int flyInMs = 10_000;
 
 if (!File.Exists(originalLocation))
+{
+    ExtractItemFromMap();
+}
+
+var gbx = Gbx.Parse<CGameItemModel>(originalLocation);
+var originalItem = gbx.Node;
+
+if (originalItem.EntityModelEdition != null)
+{
+    GenerateStaticItems();
+}
+else if (originalItem.EntityModel != null)
+{
+    GenerateDynamicItems();
+}
+else
+{
+    Console.WriteLine($"Unexpected form for item {itemIdToUse}");
+}
+
+
+void GenerateDynamicItems()
+{
+    var prefab = (CPlugPrefab)originalItem.EntityModel;
+    var cPlugDynaObjectModel = (CPlugDynaObjectModel)prefab.Ents[0].Model;
+    var sKinematicConstraint = (NPlugDyna_SKinematicConstraint)prefab.Ents[1].Model;
+    var cPlugVisuals = cPlugDynaObjectModel.Mesh.Visuals;
+
+
+    var varianceList = ExtractDynamicPlacements();
+    var vertexStream = cPlugVisuals[0].VertexStreams[0];
+    var originalPositions = vertexStream.Positions.ToArray();
+
+    Directory.CreateDirectory($"{itemsLocation}/dynamic");
+    foreach (var (z, y, numFrames) in varianceList)
+    {
+        ScaleCube(vertexStream.Positions, originalPositions, z, y);
+        sKinematicConstraint.TransAnimFunc.SubFuncs = GenerateAnimationsFunctions(numFrames);
+        sKinematicConstraint.TransMax = translationMax;
+
+        var name = $"snow_{z}x{y}_{numFrames}f";
+        Console.WriteLine($"Saving {name}...");
+        originalItem.Name = name;
+        gbx.Save($"{itemsLocation}/dynamic/{name}.Item.Gbx");
+    }
+
+    Console.WriteLine("Dynamic generation success!");
+}
+
+void GenerateStaticItems()
+{
+    var cGameCommonItemEntityModelEdition = (CGameCommonItemEntityModelEdition)originalItem.EntityModelEdition;
+    var geometryLayer = (CPlugCrystal.GeometryLayer)cGameCommonItemEntityModelEdition.MeshCrystal.Layers[0];
+    var positions = geometryLayer.Crystal.Positions;
+    var originalPositions = new[]
+    {
+        new Vec3(8.0f, 0.0f, -8.0f),
+        new Vec3(8.0f, 0.0f, 0.0f),
+        new Vec3(0.0f, 0.0f, 0.0f),
+        new Vec3(4.0f, 0.0f, -8.0f),
+        new Vec3(0.0f, 0.0f, -8.0f),
+        new Vec3(4.0f, 8.0f, -8.0f),
+        new Vec3(0.0f, 8.0f, -8.0f),
+        new Vec3(0.0f, 8.0f, 0.0f),
+        new Vec3(8.0f, 8.0f, -8.0f),
+        new Vec3(8.0f, 8.0f, 0.0f)
+    };
+
+    var variancesList = ExtractStaticPlacements();
+
+    Directory.CreateDirectory($"{itemsLocation}/static");
+    foreach (var variance in variancesList)
+    {
+        var splitVariance = variance.Split("x");
+        ScaleCube(positions, originalPositions, int.Parse(splitVariance[0]), int.Parse(splitVariance[1]));
+
+        var name = $"snow_{variance}_static";
+        Console.WriteLine($"Saving {name}...");
+        gbx.Save($"{itemsLocation}/static/{name}.Item.Gbx");
+    }
+
+    Console.WriteLine("Static generation success!");
+}
+
+void ScaleCube(Vec3[] positions, Vec3[] refPositions, float sizeZ, float sizeY)
+{
+    var width = sizeZ * -8f;
+    var height = sizeY * 8f;
+
+    for (var i = 0; i < refPositions.Length; i++)
+    {
+        var newX = refPositions[i].X;
+        var newY = refPositions[i].Y < 4f ? 0f : height;
+        var newZ = refPositions[i].Z < -4f ? width : 0f;
+
+        positions[i] = new Vec3(newX, newY, newZ);
+    }
+}
+
+void ExtractItemFromMap()
 {
     var map = Gbx.ParseNode<CGameCtnChallenge>(inputMap);
     var embeddedZipData = map.OpenReadEmbeddedZipData();
@@ -23,47 +130,54 @@ if (!File.Exists(originalLocation))
     Console.WriteLine($"Extracted item to {originalLocation}");
 }
 
-void ScaleCrystalCube(Vec3[] positions, Vec3[] refPositions, float sizeX, float sizeY) {
-    var width = sizeX * 8f;
-    var midpointX = sizeX * 4f;
-    var height = sizeY * 8f;
-
-    for (int i = 0; i < refPositions.Length; i++) {
-        var currentPos = refPositions[i];
-
-        float newX = currentPos.X < 0.1f ? 0f : (currentPos.X < 5f ? midpointX : width);
-        float newY = currentPos.Y < 4f ? 0f : height;
-        float newZ = currentPos.Z < -4f ? -8f : 0f;
-
-        positions[i] = new Vec3(newX, newY, newZ);
-    }
+// 1x1, 4x3, ...
+HashSet<string> ExtractStaticPlacements()
+{
+    var lines = File.ReadAllLines(inputPlacement);
+    return lines.Skip(3).Select(line => line.Split("_")[1]).ToHashSet();
 }
 
-var gbx = Gbx.Parse<CGameItemModel>(originalLocation);
-var originalItem = gbx.Node;
-var geometryLayer = (CPlugCrystal.GeometryLayer)((CGameCommonItemEntityModelEdition)originalItem.EntityModelEdition).MeshCrystal.Layers[0];
-var positions = geometryLayer.Crystal.Positions;
-var originalPositions = new[]
+// 1x2_4f becomes (1, 2, 4)
+HashSet<(int, int, int)> ExtractDynamicPlacements()
 {
-    new Vec3(8.0f, 0.0f, -8.0f),
-    new Vec3(8.0f, 0.0f, 0.0f),
-    new Vec3(0.0f, 0.0f, 0.0f),
-    new Vec3(4.0f, 0.0f, -8.0f),
-    new Vec3(0.0f, 0.0f, -8.0f),
-    new Vec3(4.0f, 8.0f, -8.0f),
-    new Vec3(0.0f, 8.0f, -8.0f),
-    new Vec3(0.0f, 8.0f, 0.0f),
-    new Vec3(8.0f, 8.0f, -8.0f),
-    new Vec3(8.0f, 8.0f, 0.0f)
-};
-var variancesList = new List<string>
-    { "1x1", "4x2", "2x1", "2x4", "6x6", "1x2", "2x2", "6x1", "1x6", "3x1", "1x3", "3x2", "4x1", "1x4", 
-    "4x4", "1x5", "5x1", "2x3"};
+    var lines = File.ReadAllLines(inputPlacement);
+    return lines.Skip(3).Select(line =>
+    {
+        var item2D = line.Split("_");
 
-foreach (var variance in variancesList)
+        var z = int.Parse(item2D[1].Split("x")[0]);
+        var y = int.Parse(item2D[1].Split("x")[1]);
+        var numFrames = int.Parse(item2D[2][0].ToString());
+
+        return (z, y, numFrames);
+    }).ToHashSet();
+}
+
+
+NPlugDyna_SKinematicConstraint.SubAnimFunc[] GenerateAnimationsFunctions(int numFrames)
 {
-    var splitVariance = variance.Split("x");
-    ScaleCrystalCube(positions, originalPositions, int.Parse(splitVariance[0]), int.Parse(splitVariance[1]));
-    
-    gbx.Save($"{itemsLocation}/snow_{variance}_static.Item.Gbx");
+    var initalWaitFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
+    {
+        Duration = new TimeInt32(initialBlockWaitMs),
+        Reverse = true
+    };
+    var flyInFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
+    {
+        Duration = new TimeInt32(flyInMs),
+        Ease = NPlugDyna_SKinematicConstraint.AnimEase.QuadOut,
+        Reverse = true
+    };
+    var frameFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
+    {
+        Duration = new TimeInt32(frameMs * numFrames),
+        Reverse = false
+    };
+    var returnFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
+    {
+        Duration = new TimeInt32(1),
+        Ease = NPlugDyna_SKinematicConstraint.AnimEase.Linear,
+        Reverse = false
+    };
+
+    return [initalWaitFn, flyInFn, frameFn, returnFn];
 }
