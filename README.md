@@ -13,32 +13,27 @@
 3. Generate `/resources/bad_apple_greedy_placement.txt` with `bad_apple_compression.py`
 
 ```
-New total item count: 7474 instances.
+New total item count: 7719 instances.
 
 --- BLOCK USAGE PROFILE ---
-pixel_1x1_1f: Used 1839 times
-pixel_4x2_1f: Used 816 times
-pixel_2x1_1f: Used 567 times
-pixel_4x4_1f: Used 547 times
-pixel_2x4_1f: Used 455 times
-pixel_6x6_1f: Used 451 times
-pixel_1x2_1f: Used 364 times
-pixel_2x2_1f: Used 323 times
-pixel_6x1_1f: Used 284 times
-pixel_1x6_1f: Used 251 times
-pixel_3x1_1f: Used 251 times
-pixel_1x3_1f: Used 222 times
-pixel_3x2_1f: Used 192 times
-pixel_4x1_1f: Used 133 times
-pixel_1x4_1f: Used 133 times
-pixel_6x6_4f: Used 123 times
-pixel_4x4_4f: Used 91 times
-pixel_1x5_1f: Used 84 times
-pixel_5x1_1f: Used 83 times
-pixel_2x3_1f: Used 81 times
-pixel_1x1_2f: Used 72 times
-pixel_1x1_8f: Used 65 times
-pixel_1x1_4f: Used 47 times
+snow_1x1_1f: Used 1907 times
+snow_6x6_1f: Used 1136 times
+snow_4x2_1f: Used 785 times
+snow_4x4_1f: Used 578 times
+snow_2x1_1f: Used 559 times
+snow_2x4_1f: Used 430 times
+snow_1x2_1f: Used 382 times
+snow_6x1_1f: Used 322 times
+snow_2x2_1f: Used 294 times
+snow_3x1_1f: Used 241 times
+snow_1x3_1f: Used 234 times
+snow_1x6_1f: Used 225 times
+snow_3x2_1f: Used 176 times
+snow_1x4_1f: Used 106 times
+snow_4x1_1f: Used 102 times
+snow_1x5_1f: Used 92 times
+snow_5x1_1f: Used 81 times
+snow_2x3_1f: Used 69 times
 ```
 
 ### Item generation

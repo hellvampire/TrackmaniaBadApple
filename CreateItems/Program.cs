@@ -15,10 +15,10 @@ const string inputMap = $"{resources}/Bad Apple - template.Map.Gbx";
 const string inputPlacement = $"{resources}/bad_apple_greedy_placement.txt";
 const string itemsLocation = $"{resources}/items";
 const string originalLocation = $"{itemsLocation}/{itemIdToUse}.Item.Gbx";
-const int translationMax = 10_000;
+const int translationMax = -10_000;
 const int frameMs = 1_000;
-const int initialBlockWaitMs = 200_000;
-const int flyInMs = 10_000;
+const int blockWaitMs = 7_000;
+const int flyInMs = 0;
 
 if (!File.Exists(originalLocation))
 {
@@ -52,6 +52,9 @@ void GenerateDynamicItems()
 
     var varianceList = ExtractDynamicPlacements();
     var vertexStream = cPlugVisuals[0].VertexStreams[0];
+    ((NPlugDynaObjectModel_SInstanceParams)prefab.Ents[0].Params).CastStaticShadow = false;
+    sKinematicConstraint.TransMax = translationMax;
+    sKinematicConstraint.TransAxis = NPlugDyna_SKinematicConstraint.EAxis.Y;
     var originalPositions = vertexStream.Positions.ToArray();
 
     Directory.CreateDirectory($"{itemsLocation}/dynamic");
@@ -59,7 +62,6 @@ void GenerateDynamicItems()
     {
         ScaleCube(vertexStream.Positions, originalPositions, z, y);
         sKinematicConstraint.TransAnimFunc.SubFuncs = GenerateAnimationsFunctions(numFrames);
-        sKinematicConstraint.TransMax = translationMax;
 
         var name = $"snow_{z}x{y}_{numFrames}f";
         Console.WriteLine($"Saving {name}...");
@@ -156,11 +158,6 @@ HashSet<(int, int, int)> ExtractDynamicPlacements()
 
 NPlugDyna_SKinematicConstraint.SubAnimFunc[] GenerateAnimationsFunctions(int numFrames)
 {
-    var initalWaitFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
-    {
-        Duration = new TimeInt32(initialBlockWaitMs),
-        Reverse = true
-    };
     var flyInFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
     {
         Duration = new TimeInt32(flyInMs),
@@ -174,10 +171,15 @@ NPlugDyna_SKinematicConstraint.SubAnimFunc[] GenerateAnimationsFunctions(int num
     };
     var returnFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
     {
-        Duration = new TimeInt32(1),
+        Duration = new TimeInt32(0),
         Ease = NPlugDyna_SKinematicConstraint.AnimEase.Linear,
         Reverse = false
     };
+    var waitFn = new NPlugDyna_SKinematicConstraint.SubAnimFunc
+    {
+        Duration = new TimeInt32(blockWaitMs),
+        Reverse = true
+    };
 
-    return [initalWaitFn, flyInFn, frameFn, returnFn];
+    return [flyInFn, frameFn, returnFn, waitFn];
 }

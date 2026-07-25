@@ -5,12 +5,9 @@ FRAME_FOLDER = "./resources/frames"
 FRAME_COUNT = 156
 WIDTH = 32
 HEIGHT = 27
-OUTPUT_FILE = "resources/bad_apple_greedy_placement.txt"
+OUTPUT_FILE = "resources/bad_apple_greedy_placement_time_1.txt"
 
 BLOCK_CONFIGS = [
-    {"w": 6, "h": 6, "t": 4},
-    {"w": 4, "h": 4, "t": 4},
-
     {"w": 6, "h": 6, "t": 1},
     {"w": 4, "h": 4, "t": 1},
     {"w": 2, "h": 2, "t": 1},
@@ -32,10 +29,6 @@ BLOCK_CONFIGS = [
     {"w": 3, "h": 2, "t": 1},
     {"w": 2, "h": 3, "t": 1},
 
-    {"w": 1, "h": 1, "t": 16},
-    {"w": 1, "h": 1, "t": 8},
-    {"w": 1, "h": 1, "t": 4},
-    {"w": 1, "h": 1, "t": 2},
     {"w": 1, "h": 1, "t": 1}
 ]
 BLOCK_CONFIGS.sort(key=lambda b: (b['w'] * b['h'] * b['t']), reverse=True)
@@ -89,7 +82,7 @@ for config in BLOCK_CONFIGS:
         for y in range(HEIGHT):
             for x in range(WIDTH):
                 if can_place_block(f, y, x, w_size, h_size, t_size):
-                    item_name = f"pixel_{w_size}x{h_size}_{t_size}f.Item.Gbx"
+                    item_name = f"snow_{w_size}x{h_size}_{t_size}f.Item.Gbx"
 
                     placement_instructions.append({
                         "x": x,
@@ -97,13 +90,13 @@ for config in BLOCK_CONFIGS:
                         "block_type": item_name,
                         "start_frame": f,
                     })
-                    item_name = f"pixel_{w_size}x{h_size}_{t_size}f"
+                    item_name = f"snow_{w_size}x{h_size}_{t_size}f"
                     usage_tracker[item_name] = usage_tracker.get(item_name, 0) + 1
                     mark_as_claimed(f, y, x, w_size, h_size, t_size)
 
 with open(OUTPUT_FILE, "w") as f:
     f.write(f"Total Block Instances Placed: {len(placement_instructions)}\n")
-    f.write("X_Coord | Y_Coord | Item_Name | Start_Frame\n")
+    f.write("Z_Coord | Y_Coord | Item_Name | Start_Frame\n")
     f.write("-" * 85 + "\n")
     for item in placement_instructions:
         f.write(
