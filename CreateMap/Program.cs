@@ -10,50 +10,68 @@ const string resources = "../../../../resources";
 const string dynamicItems = $"{resources}/items/dynamic";
 const string inputPlacement = $"{resources}/bad_apple_greedy_placement.txt";
 const string inputMap = $"{resources}/Bad Apple - template.Map.Gbx";
-const string outputMap = $"{resources}/Bad Apple - 2D.Map.Gbx";
+const string templatedItemName = "pixel_1x1_1f";
+const string outputMap = $"{resources}/Bad Apple - Spiral.Map.Gbx";
 
-var startY = 1000;
-var radius = 1000;
-var intialAnimationDelayMs = 2_000;
-var initialBlockWaitMs = 200_000;
-var timePerFrameMs = 1_000;
-var blockSize = 8;
+const int startY = 800;
+const int startRadius = 1000;
+const int radiusEndFraction = 2;
+const int amountOfRotations = 4;
+const int blockSize = 8;
 
 var map = Gbx.ParseNode<CGameCtnChallenge>(inputMap);
 map.UpdateEmbeddedZipData(AddDynamicItems);
 
 var embeddedZipData = map.OpenReadEmbeddedZipData();
+var templateItem = map.AnchoredObjects.Find(m => m.ItemModel.Id.Contains(templatedItemName));
 
 var itemPlacements = ReadItemPlacements();
 var maxHeight = itemPlacements.Select(p => p.Y).Max();
+var maxWidth = itemPlacements.Select(p => p.Z).Max();
 var maxFrame = itemPlacements.Select(p => p.Frame).Max();
 
+var itemCounter = 0;
 foreach (var itemPlacement in itemPlacements)
 {
-    var itemEntry = embeddedZipData.GetEntry(itemPlacement.ItemName);
+    var itemEntry = embeddedZipData.GetEntry($"Items/{itemPlacement.ItemName}");
 
-    CGameCtnAnchoredObject templateItem = map.AnchoredObjects.Find(m => m.ItemModel.Id.Contains("pixel_1x1_1f"));
-    var itemWidth = int.Parse(itemPlacement.ItemName.Split("_")[1].Substring(0, 1));
     var itemHeight = int.Parse(itemPlacement.ItemName.Split("_")[1].Substring(2, 1));
-    var angle = 2.0 * Math.PI * itemPlacement.Frame / maxFrame;
-    var startX = (int)(radius * Math.Cos(angle)) + itemPlacement.Frame * blockSize * 2;
-    var startZ = (int)(radius * Math.Sin(angle));
+    var percentageAlongAnimation = (double)itemPlacement.Frame / maxFrame;
+    var angle = 2.0 * Math.PI * percentageAlongAnimation * amountOfRotations;
+    
+    var centerX = startRadius * (1 + percentageAlongAnimation * radiusEndFraction) * Math.Cos(angle);
+    var centerZ = startRadius * (1 + percentageAlongAnimation * radiusEndFraction) * Math.Sin(angle);
+
+    var targetAngleRad = angle + Math.PI / 2.0; 
+    
+    var localOffsetX = blockSize / 2.0;
+    var localOffsetZ =  (itemPlacement.Z - maxWidth / 2.0) * blockSize;
+
+    var rotatedX = localOffsetX * Math.Cos(targetAngleRad) - localOffsetZ * Math.Sin(targetAngleRad);
+    var rotatedZ = localOffsetX * Math.Sin(targetAngleRad) + localOffsetZ * Math.Cos(targetAngleRad);
+
+    var correctedX = centerX + rotatedX;
+    var correctedZ = centerZ + rotatedZ;
 
     var newPosition = new Vec3(
-        startX,
-        startY + (maxHeight - itemPlacement.Y - itemHeight) * blockSize,
-        startZ + (itemPlacement.Z + itemWidth) * blockSize);
-    var placedObject = map.PlaceAnchoredObject(
-        new Ident(itemEntry.FullName, templateItem.ItemModel.Collection, templateItem.ItemModel.Author),
-        newPosition,
-        new Vec3(0, 0, 0) // (float)(angle * 180 / Math.PI)
+        (float)correctedX,
+        startY + (maxHeight - itemPlacement.Y - itemHeight + itemPlacement.Frame) * blockSize,
+        (float)correctedZ
     );
+
+    var placedObject = map.PlaceAnchoredObject(
+        new Ident(itemEntry.Name, templateItem.ItemModel.Collection, templateItem.ItemModel.Author),
+        newPosition,
+        new Vec3(float.Pi / 2 - (float) angle, 0, 0) 
+    );
+
     placedObject.AnimPhaseOffset = (CGameCtnAnchoredObject.EPhaseOffset)(8 - itemPlacement.Frame % 8);
+    itemCounter++;
 }
 
 map.MapName = outputMap.Split('/').Last().Split('.').First();
 map.Save(outputMap);
-Console.WriteLine($"Success! Saved map to: {outputMap}");
+Console.WriteLine($"Success! Saved map with {itemCounter} items to: {outputMap}");
 
 
 // 
@@ -64,7 +82,7 @@ void AddDynamicItems(ZipArchive embeddedZip)
     {
         var allBytes = File.ReadAllBytes(dynamicFileName);
         var fileName = new FileInfo(dynamicFileName).Name;
-        var entry = embeddedZip.CreateEntry(fileName);
+        var entry = embeddedZip.CreateEntry($"Items/{fileName}");
         entry.Open().Write(allBytes);
         Console.WriteLine($"Saved {fileName} into the map");
     }

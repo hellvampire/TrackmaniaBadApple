@@ -16,8 +16,8 @@ const string inputPlacement = $"{resources}/bad_apple_greedy_placement.txt";
 const string itemsLocation = $"{resources}/items";
 const string originalLocation = $"{itemsLocation}/{itemIdToUse}.Item.Gbx";
 const int translationMax = -10_000;
-const int frameMs = 1_000;
-const int blockWaitMs = 7_000;
+const int frameMs = 670;
+const int blockWaitMs = 7 * frameMs;
 const int flyInMs = 0;
 
 if (!File.Exists(originalLocation))
