@@ -2,9 +2,10 @@
 
 ### Shoutouts
 * [gbx-net](https://github.com/BigBang1112/gbx-net) library to make anything in this repo work
-* [KamiKalash](https://item.mania.exchange/user/profile/50960) for creating the original custom snow cube
+* [KamiKalash](https://item.mania.exchange/user/profile/50960) for creating the original custom snow cube and apple items
 * XertroV for the original moving item & [tutorial](https://www.youtube.com/watch?v=Di4jZkdXfFM)
-* CBT_Enjoyer_69 for the initial idea and inspiration [maps](https://trackmania.exchange/mapsearch?query=author%3A+CBT_Enjoyer_69+tags%3A+%22Moving+Items%22)
+* CBT_Enjoyer_69 for the initial idea and [inspiration maps](https://trackmania.exchange/mapsearch?query=author%3A+CBT_Enjoyer_69+tags%3A+%22Moving+Items%22)
+* Alstroemeria Records for creating the [original song](https://www.youtube.com/watch?v=FtutLA63Cp8)
 
 
 ### Resource generation
@@ -46,7 +47,22 @@ snow_2x3_1f: Used 154 times
 5. Save this new item as `/resources/snow_1x1_1f.Item.Gbx`
 6. Generate all dynamic variances by running `CreateItems`
 
-### Removing the clouds
+### Map generation
+1. First make sure all the dynamic items are generated
+2. Have the templated map and placements in the correct folder
+3. Generate the map from `CreateMap` which will place all the dynamic items according to the placement document. 
+It will also create a spiral of platforms that's drivable.
+
+### Removing the clouds (manual)
 1. Edit Ambiance in the editor
 2. Add fog layer
-3. Change sky intensity to 100% on both start & end keypoints
+3. Change sky opacity to 0% on both start & end keypoints
+
+### Adding sound FX (manual)
+There is a trigger at the start of the run that will start playing the music whenever you respawn
+1. Convert MP3 to .ogg format
+2. Upload .ogg to [dashmap](https://dashmap.live)
+3. Download .loc file from dashmap
+4. Place both .ogg and .ogg.loc file in `/Media/Sounds`, make sure they have the same base name
+5. In editor, add media tracker trigger zone
+6. Add SFX and select the base name and select music
